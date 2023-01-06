@@ -1,7 +1,10 @@
+import { useMutation } from '@apollo/client';
 import React, { useState } from 'react';
+import { LOGIN } from '../utils/queries';
 
 const Login = (props) => {
   const [formState, setFormState] = useState({ email: '', password: '' });
+  const [loginUser] = useMutation(LOGIN)
 
   // update state based on form input changes
   const handleChange = (event) => {
@@ -17,11 +20,9 @@ const Login = (props) => {
   const handleFormSubmit = async (event) => {
     event.preventDefault();
 
-    // clear form values
-    setFormState({
-      email: '',
-      password: '',
-    });
+    return loginUser({
+      variables: formState
+    })
   };
 
   return (
