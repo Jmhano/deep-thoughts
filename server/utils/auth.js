@@ -1,38 +1,32 @@
-const jwt = require("jsonwebtoken");
+// const faker = require('faker');
+const userSeeds = require('./userSeed.json');
+const thoughtSeeds = require('./thoughtSeed.json');
+const db = require('../config/connection');
+const { Thought, User } = require('../models');
 
-const secret = "mysecretsshhhhh";
-const expiration = "2h";
+db.once('open', async () => {
+  try {
+    await Thought.deleteMany({});
+    await User.deleteMany({});
 
-module.exports = {
-  signToken: function ({ username, email, _id }) {
-    const payload = { username, email, _id };
+    await User.create(userSeeds);
 
-    return jwt.sign({ data: payload }, secret, { expiresIn: expiration });
-  },
-
-  authMiddleware: function ({ req }) {
-    // allows token to be sent via req.body, req.query, or headers
-    let token = req.body.token || req.query.token || req.headers.authorization;
-
-    // separate "Bearer" from "<tokenvalue>"
-    if (req.headers.authorization) {
-      token = token.split(" ").pop().trim();
+    for (let i = 0; i < thoughtSeeds.length; i++) {
+      const { _id, thoughtAuthor } = await Thought.create(thoughtSeeds[i]);
+      const user = await User.findOneAndUpdate(
+        { username: thoughtAuthor },
+        {
+          $addToSet: {
+            thoughts: _id,
+          },
+        }
+      );
     }
+  } catch (err) {
+    console.error(err);
+    process.exit(1);
+  }
 
-    // if no token, return request object as is
-    if (!token) {
-      return req;
-    }
-
-    try {
-      // decode and attach user data to request object
-      const { data } = jwt.verify(token, secret, { maxAge: expiration });
-      req.user = data;
-    } catch {
-      console.log("Invalid token");
-    }
-
-    // return updated request object
-    return req;
-  },
-};
+  console.log('all done!');
+  process.exit(0);
+});
